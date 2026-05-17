@@ -7,6 +7,7 @@ import {
   useListOpenaiMessages,
   getListOpenaiMessagesQueryKey
 } from "@workspace/api-client-react";
+import { AppShell } from "@/components/app-shell";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -141,7 +142,8 @@ export default function Chatbot() {
   }, [messages, streamingMessage]);
 
   return (
-    <div className="container mx-auto px-4 py-8 h-[calc(100vh-8rem)] flex gap-6 max-w-6xl">
+    <AppShell>
+    <div className="p-4 h-[calc(100vh-3.5rem)] flex gap-4 max-w-6xl mx-auto">
       
       {/* Sidebar for conversations */}
       <Card className="w-1/3 max-w-[300px] flex flex-col hidden md:flex border-border overflow-hidden bg-sidebar">
@@ -246,5 +248,6 @@ export default function Chatbot() {
         )}
       </Card>
     </div>
+    </AppShell>
   );
 }

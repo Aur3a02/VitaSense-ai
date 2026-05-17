@@ -9,7 +9,6 @@ import * as zod from 'zod';
 
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -18,7 +17,49 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
- * Submit symptoms, duration, age range, and severity for AI health guidance
+ * @summary Get the currently authenticated user
+ */
+export const GetCurrentAuthUserHeader = zod.object({
+  "Authorization": zod.string().optional()
+})
+
+export const GetCurrentAuthUserResponse = zod.object({
+  "user": zod.union([zod.object({
+  "id": zod.string(),
+  "email": zod.string().nullable(),
+  "firstName": zod.string().nullable(),
+  "lastName": zod.string().nullable(),
+  "profileImageUrl": zod.string().nullable()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Start the browser OIDC login flow
+ */
+export const BeginBrowserLoginQueryParams = zod.object({
+  "returnTo": zod.coerce.string().optional()
+})
+
+
+/**
+ * @summary Complete the browser OIDC login flow
+ */
+export const HandleBrowserLoginCallbackQueryParams = zod.object({
+  "code": zod.coerce.string().optional(),
+  "state": zod.coerce.string().optional()
+})
+
+
+/**
+ * @summary Clear the session
+ */
+export const LogoutBrowserSessionHeader = zod.object({
+  "Authorization": zod.string().optional()
+})
+
+
+/**
  * @summary Run AI-powered symptom analysis
  */
 
@@ -38,6 +79,7 @@ export const AnalyzeSymptomsResponse = zod.object({
   "possibleConditions": zod.array(zod.object({
   "name": zod.string(),
   "description": zod.string(),
+  "likelihood": zod.number().describe('Percentage likelihood 0-100'),
   "commonCauses": zod.array(zod.string()),
   "riskFactors": zod.array(zod.string()),
   "basicApproaches": zod.array(zod.string())
@@ -65,7 +107,7 @@ export const GetSymptomSuggestionsResponse = zod.array(GetSymptomSuggestionsResp
 
 
 /**
- * @summary List all saved analyses
+ * @summary List all saved analyses for current user
  */
 export const ListAnalysesResponseItem = zod.object({
   "id": zod.number(),
@@ -75,9 +117,9 @@ export const ListAnalysesResponseItem = zod.object({
   "severity": zod.string(),
   "urgencyLevel": zod.string(),
   "urgencyLabel": zod.string(),
-  "possibleConditions": zod.string().describe('JSON string of PossibleCondition array'),
-  "lifestyleAdvice": zod.string().describe('JSON string of advice array'),
-  "whenToSeeDoctor": zod.string().describe('JSON string of guidance array'),
+  "possibleConditions": zod.string(),
+  "lifestyleAdvice": zod.string(),
+  "whenToSeeDoctor": zod.string(),
   "summary": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
@@ -116,9 +158,9 @@ export const GetAnalysisResponse = zod.object({
   "severity": zod.string(),
   "urgencyLevel": zod.string(),
   "urgencyLabel": zod.string(),
-  "possibleConditions": zod.string().describe('JSON string of PossibleCondition array'),
-  "lifestyleAdvice": zod.string().describe('JSON string of advice array'),
-  "whenToSeeDoctor": zod.string().describe('JSON string of guidance array'),
+  "possibleConditions": zod.string(),
+  "lifestyleAdvice": zod.string(),
+  "whenToSeeDoctor": zod.string(),
   "summary": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
@@ -154,9 +196,9 @@ export const GetRecentAnalysesResponseItem = zod.object({
   "severity": zod.string(),
   "urgencyLevel": zod.string(),
   "urgencyLabel": zod.string(),
-  "possibleConditions": zod.string().describe('JSON string of PossibleCondition array'),
-  "lifestyleAdvice": zod.string().describe('JSON string of advice array'),
-  "whenToSeeDoctor": zod.string().describe('JSON string of guidance array'),
+  "possibleConditions": zod.string(),
+  "lifestyleAdvice": zod.string(),
+  "whenToSeeDoctor": zod.string(),
   "summary": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
@@ -172,6 +214,94 @@ export const GetUrgencyBreakdownResponseItem = zod.object({
   "count": zod.number()
 })
 export const GetUrgencyBreakdownResponse = zod.array(GetUrgencyBreakdownResponseItem)
+
+
+/**
+ * @summary Get the authenticated user's health profile
+ */
+export const GetUserProfileResponse = zod.object({
+  "userId": zod.string(),
+  "genotype": zod.string().nullish(),
+  "bloodGroup": zod.string().nullish(),
+  "sex": zod.string().nullish(),
+  "dateOfBirth": zod.string().nullish(),
+  "allergies": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Create or update user health profile
+ */
+export const UpsertUserProfileBody = zod.object({
+  "genotype": zod.string().nullish(),
+  "bloodGroup": zod.string().nullish(),
+  "sex": zod.string().nullish(),
+  "dateOfBirth": zod.string().nullish(),
+  "allergies": zod.array(zod.string()).optional()
+})
+
+export const UpsertUserProfileResponse = zod.object({
+  "userId": zod.string(),
+  "genotype": zod.string().nullish(),
+  "bloodGroup": zod.string().nullish(),
+  "sex": zod.string().nullish(),
+  "dateOfBirth": zod.string().nullish(),
+  "allergies": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Get daily health tips
+ */
+export const GetDailyTipsResponseItem = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "body": zod.string(),
+  "category": zod.string(),
+  "icon": zod.string()
+})
+export const GetDailyTipsResponse = zod.array(GetDailyTipsResponseItem)
+
+
+/**
+ * @summary List weekly checkups for current user
+ */
+export const ListCheckupsResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.string(),
+  "weekStart": zod.string(),
+  "wellnessScore": zod.number(),
+  "symptoms": zod.array(zod.string()),
+  "notes": zod.string().nullish(),
+  "aiSummary": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+export const ListCheckupsResponse = zod.array(ListCheckupsResponseItem)
+
+
+/**
+ * @summary Submit a weekly checkup
+ */
+export const submitCheckupBodyWellnessScoreMin = 0;
+export const submitCheckupBodyWellnessScoreMax = 100;
+
+
+
+export const SubmitCheckupBody = zod.object({
+  "wellnessScore": zod.number().min(submitCheckupBodyWellnessScoreMin).max(submitCheckupBodyWellnessScoreMax),
+  "symptoms": zod.array(zod.string()),
+  "notes": zod.string().nullish()
+})
+
+
+/**
+ * @summary Get current wellness score
+ */
+export const GetWellnessScoreResponse = zod.object({
+  "score": zod.number(),
+  "trend": zod.enum(['up', 'down', 'stable', 'no_data']),
+  "lastCheckup": zod.string().nullish()
+})
 
 
 /**
@@ -240,7 +370,7 @@ export const ListOpenaiMessagesResponse = zod.array(ListOpenaiMessagesResponseIt
 
 
 /**
- * @summary Send a text message and receive a streaming text response
+ * @summary Send a message and receive a streaming response
  */
 export const SendOpenaiMessageParams = zod.object({
   "id": zod.coerce.number()

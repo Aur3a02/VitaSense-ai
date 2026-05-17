@@ -1,289 +1,291 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { useAnalyzeSymptoms, useGetSymptomSuggestions, getGetSymptomSuggestionsQueryKey } from "@workspace/api-client-react";
 import { SymptomInputDuration, SymptomInputAgeRange, SymptomInputSeverity } from "@workspace/api-client-react";
 import { useAnalysis } from "@/lib/analysis-context";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { X, Loader2, Sparkles } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Search, X, ChevronRight, ChevronLeft, Activity } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
-const formSchema = z.object({
-  symptoms: z.array(z.string()).min(1, "Please enter at least one symptom"),
-  duration: z.nativeEnum(SymptomInputDuration),
-  ageRange: z.nativeEnum(SymptomInputAgeRange),
-  severity: z.nativeEnum(SymptomInputSeverity),
-  additionalNotes: z.string().optional(),
-});
+const QUICK_SYMPTOMS = [
+  "Headache","Fatigue","Fever","Nausea","Shortness of Breath",
+  "Chest Pain","Back Pain","Sore Throat","Dizziness","Joint Pain",
+  "Rash","Abdominal Pain","Cough","Vomiting","Insomnia",
+];
+
+const STEPS = ["Symptoms","Duration","Details"];
 
 export default function Analyze() {
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const { setLatestResult } = useAnalysis();
-  const [symptomInput, setSymptomInput] = useState("");
-
+  const { toast } = useToast();
   const analyzeMutation = useAnalyzeSymptoms();
 
-  const { data: suggestionsData } = useQuery({
-    queryKey: getGetSymptomSuggestionsQueryKey({ q: symptomInput }),
-    queryFn: async () => {
-      // Manual fetch here or use the hook properly? The hook is useGetSymptomSuggestions.
-      // Actually it's easier to use the exported query options or just the hook.
-      return [];
-    },
-    enabled: symptomInput.length > 1,
-  });
+  const [step, setStep] = useState(0);
+  const [symptoms, setSymptoms] = useState<string[]>([]);
+  const [searchQ, setSearchQ] = useState("");
+  const [duration, setDuration] = useState<string>(SymptomInputDuration.few_hours);
+  const [ageRange, setAgeRange] = useState<string>(SymptomInputAgeRange.adult);
+  const [severity, setSeverity] = useState<string>(SymptomInputSeverity.mild);
+  const [notes, setNotes] = useState("");
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      symptoms: [],
-      duration: SymptomInputDuration.few_hours,
-      ageRange: SymptomInputAgeRange.adult,
-      severity: SymptomInputSeverity.mild,
-      additionalNotes: "",
-    },
-  });
+  const { data: suggestions } = useGetSymptomSuggestions(
+    { q: searchQ },
+    { query: { enabled: searchQ.length > 1, queryKey: getGetSymptomSuggestionsQueryKey({ q: searchQ }) } }
+  );
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const toggleSymptom = (s: string) => {
+    setSymptoms((prev) =>
+      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]
+    );
+  };
+
+  const addCustomSymptom = () => {
+    const t = searchQ.trim();
+    if (t && !symptoms.includes(t)) {
+      setSymptoms((prev) => [...prev, t]);
+    }
+    setSearchQ("");
+  };
+
+  const handleSubmit = () => {
+    if (symptoms.length === 0) {
+      toast({ title: "Add at least one symptom", variant: "destructive" });
+      return;
+    }
     analyzeMutation.mutate(
-      { data: values },
+      { data: { symptoms, duration: duration as typeof SymptomInputDuration[keyof typeof SymptomInputDuration], ageRange: ageRange as typeof SymptomInputAgeRange[keyof typeof SymptomInputAgeRange], severity: severity as typeof SymptomInputSeverity[keyof typeof SymptomInputSeverity], additionalNotes: notes || null } },
       {
         onSuccess: (result) => {
-          setLatestResult(result);
+          setLatestResult(result, { symptoms, duration, ageRange, severity, additionalNotes: notes });
           setLocation("/results");
         },
+        onError: () => toast({ title: "Analysis failed. Please try again.", variant: "destructive" }),
       }
     );
   };
 
-  const addSymptom = (symptom: string) => {
-    const current = form.getValues("symptoms");
-    if (!current.includes(symptom)) {
-      form.setValue("symptoms", [...current, symptom], { shouldValidate: true });
-    }
-    setSymptomInput("");
-  };
+  const progress = ((step + 1) / STEPS.length) * 100;
 
-  const removeSymptom = (symptom: string) => {
-    const current = form.getValues("symptoms");
-    form.setValue(
-      "symptoms",
-      current.filter((s) => s !== symptom),
-      { shouldValidate: true }
-    );
-  };
+  const filteredSuggestions = searchQ.length > 1
+    ? (suggestions ?? []).filter((s) => !symptoms.includes(s.label)).slice(0, 8)
+    : [];
 
   return (
-    <div className="container mx-auto px-4 py-12 max-w-2xl">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-4">
-            Understand Your Symptoms
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Provide details about what you're experiencing, and our AI will help you understand potential causes and next steps.
-          </p>
-        </div>
-
-        <div className="bg-card rounded-xl p-6 md:p-8 shadow-sm border border-border">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              
-              <FormField
-                control={form.control}
-                name="symptoms"
-                render={() => (
-                  <FormItem>
-                    <FormLabel className="text-base font-semibold">What are your symptoms?</FormLabel>
-                    <FormDescription>
-                      Type a symptom and press Enter, or select from suggestions.
-                    </FormDescription>
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        <AnimatePresence>
-                          {form.watch("symptoms").map((symptom) => (
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.8 }}
-                              key={symptom}
-                            >
-                              <Badge variant="secondary" className="pl-3 pr-1 py-1.5 text-sm bg-primary/10 text-primary hover:bg-primary/20 border-primary/20">
-                                {symptom}
-                                <button
-                                  type="button"
-                                  onClick={() => removeSymptom(symptom)}
-                                  className="ml-1 p-0.5 rounded-full hover:bg-primary/20 transition-colors"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </Badge>
-                            </motion.div>
-                          ))}
-                        </AnimatePresence>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="e.g., Headache, fever, fatigue..."
-                          value={symptomInput}
-                          onChange={(e) => setSymptomInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              if (symptomInput.trim()) {
-                                addSymptom(symptomInput.trim());
-                              }
-                            }
-                          }}
-                        />
-                        <Button 
-                          type="button" 
-                          variant="secondary"
-                          onClick={() => {
-                            if (symptomInput.trim()) {
-                              addSymptom(symptomInput.trim());
-                            }
-                          }}
-                        >
-                          Add
-                        </Button>
-                      </div>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
+    <AppShell>
+      <div className="min-h-full p-6 flex gap-6 max-w-5xl mx-auto">
+        {/* Main form card */}
+        <div className="flex-1">
+          <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
+            {/* Progress */}
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-muted-foreground">Step {step + 1} of {STEPS.length}</span>
+              <span className="text-sm font-medium text-primary">{STEPS[step]}</span>
+            </div>
+            <div className="h-1.5 bg-muted rounded-full mb-6 overflow-hidden">
+              <motion.div
+                className="h-full bg-primary rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.3 }}
               />
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="duration"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>How long have you had them?</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select duration" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={SymptomInputDuration.few_hours}>A few hours</SelectItem>
-                          <SelectItem value={SymptomInputDuration.one_day}>About a day</SelectItem>
-                          <SelectItem value={SymptomInputDuration.several_days}>Several days</SelectItem>
-                          <SelectItem value={SymptomInputDuration.one_week_plus}>Over a week</SelectItem>
-                          <SelectItem value={SymptomInputDuration.chronic}>Chronic / Ongoing</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
+            <AnimatePresence mode="wait">
+              {step === 0 && (
+                <motion.div key="step0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                  <h2 className="text-xl font-bold mb-1">Select Your Symptoms</h2>
+                  <p className="text-sm text-muted-foreground mb-4">Tap any symptoms or search for others.</p>
+
+                  <div className="relative mb-4">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      className="pl-9"
+                      placeholder="Search symptoms (e.g., Headache)"
+                      value={searchQ}
+                      onChange={(e) => setSearchQ(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && addCustomSymptom()}
+                    />
+                    {searchQ && (
+                      <button onClick={() => setSearchQ("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {filteredSuggestions.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      {filteredSuggestions.map((s) => (
+                        <button key={s.id} onClick={() => { toggleSymptom(s.label); setSearchQ(""); }}
+                          className="px-3 py-1.5 text-sm border border-primary/40 rounded-full bg-primary/5 text-primary hover:bg-primary/10 transition-colors">
+                          + {s.label}
+                        </button>
+                      ))}
+                    </div>
                   )}
-                />
 
-                <FormField
-                  control={form.control}
-                  name="severity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>How severe are they?</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select severity" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={SymptomInputSeverity.mild}>Mild (Noticeable but doesn't interfere with daily life)</SelectItem>
-                          <SelectItem value={SymptomInputSeverity.moderate}>Moderate (Interferes with some activities)</SelectItem>
-                          <SelectItem value={SymptomInputSeverity.severe}>Severe (Prevents daily activities)</SelectItem>
-                          <SelectItem value={SymptomInputSeverity.emergency}>Emergency (Unbearable / Life-threatening)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {QUICK_SYMPTOMS.map((s) => (
+                      <button key={s} onClick={() => toggleSymptom(s)}
+                        className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
+                          symptoms.includes(s)
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background border-border text-foreground hover:border-primary/60"
+                        }`}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+
+                  {symptoms.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-3 border-t border-border">
+                      {symptoms.map((s) => (
+                        <span key={s} className="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
+                          {s}
+                          <button onClick={() => toggleSymptom(s)} className="hover:text-primary/60"><X className="h-3 w-3" /></button>
+                        </span>
+                      ))}
+                    </div>
                   )}
-                />
-              </div>
+                </motion.div>
+              )}
 
-              <FormField
-                control={form.control}
-                name="ageRange"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Age Range</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select age range" />
-                        </SelectTrigger>
-                      </FormControl>
+              {step === 1 && (
+                <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                  <h2 className="text-xl font-bold mb-1">Duration</h2>
+                  <p className="text-sm text-muted-foreground mb-6">How long have you had these symptoms?</p>
+                  <div className="grid grid-cols-1 gap-3">
+                    {[
+                      { value: "few_hours", label: "A few hours", desc: "Less than 24 hours" },
+                      { value: "one_day", label: "About 1 day", desc: "24-48 hours" },
+                      { value: "several_days", label: "Several days", desc: "2-7 days" },
+                      { value: "one_week_plus", label: "1 week or more", desc: "More than a week" },
+                      { value: "chronic", label: "Chronic / Long-term", desc: "Ongoing condition" },
+                    ].map((opt) => (
+                      <button key={opt.value} onClick={() => setDuration(opt.value)}
+                        className={`flex items-center justify-between p-4 rounded-xl border text-left transition-all ${
+                          duration === opt.value
+                            ? "border-primary bg-primary/5 text-primary"
+                            : "border-border bg-background hover:border-primary/40"
+                        }`}>
+                        <div>
+                          <p className="font-medium text-sm">{opt.label}</p>
+                          <p className="text-xs text-muted-foreground">{opt.desc}</p>
+                        </div>
+                        {duration === opt.value && <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center text-white text-xs">✓</div>}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {step === 2 && (
+                <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
+                  <div>
+                    <h2 className="text-xl font-bold mb-1">Additional Details</h2>
+                    <p className="text-sm text-muted-foreground mb-4">Help us give you a better assessment.</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium block mb-2">Severity</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { value: "mild", label: "Mild", color: "border-green-400 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300" },
+                        { value: "moderate", label: "Moderate", color: "border-yellow-400 bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300" },
+                        { value: "severe", label: "Severe", color: "border-orange-400 bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300" },
+                        { value: "emergency", label: "Emergency", color: "border-red-400 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300" },
+                      ].map((opt) => (
+                        <button key={opt.value} onClick={() => setSeverity(opt.value)}
+                          className={`p-3 rounded-xl border-2 text-sm font-medium transition-all ${
+                            severity === opt.value ? opt.color : "border-border bg-background text-foreground hover:border-primary/40"
+                          }`}>
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium block mb-2">Age Range</label>
+                    <Select value={ageRange} onValueChange={setAgeRange}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={SymptomInputAgeRange.child}>Child (0-12)</SelectItem>
-                        <SelectItem value={SymptomInputAgeRange.teen}>Teen (13-19)</SelectItem>
-                        <SelectItem value={SymptomInputAgeRange.adult}>Adult (20-64)</SelectItem>
-                        <SelectItem value={SymptomInputAgeRange.elderly}>Elderly (65+)</SelectItem>
+                        <SelectItem value="child">Child (0-12)</SelectItem>
+                        <SelectItem value="teen">Teen (13-17)</SelectItem>
+                        <SelectItem value="adult">Adult (18-64)</SelectItem>
+                        <SelectItem value="elderly">Elderly (65+)</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium block mb-2">Additional context <span className="text-muted-foreground font-normal">(optional)</span></label>
+                    <textarea
+                      className="w-full rounded-xl border border-border bg-background p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      rows={3}
+                      placeholder="e.g., I recently travelled, I have diabetes, taking medications..."
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-              <FormField
-                control={form.control}
-                name="additionalNotes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Additional context (Optional)</FormLabel>
-                    <FormDescription>
-                      Any medical history, recent travel, or other details you think might be relevant.
-                    </FormDescription>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="I recently traveled to..." 
-                        className="resize-none" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <Button 
-                type="submit" 
-                className="w-full h-12 text-lg font-medium" 
-                disabled={analyzeMutation.isPending}
-              >
-                {analyzeMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Analyzing Symptoms...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-5 w-5" />
-                    Analyze Symptoms
-                  </>
-                )}
+            <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
+              <Button variant="outline" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0} className="gap-1">
+                <ChevronLeft className="h-4 w-4" /> Back
               </Button>
-            </form>
-          </Form>
+              {step < STEPS.length - 1 ? (
+                <Button onClick={() => {
+                  if (step === 0 && symptoms.length === 0) { toast({ title: "Add at least one symptom", variant: "destructive" }); return; }
+                  setStep((s) => s + 1);
+                }} className="gap-1">
+                  Next <ChevronRight className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button onClick={handleSubmit} disabled={analyzeMutation.isPending} className="gap-2 min-w-32">
+                  {analyzeMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Analyzing...</> : <><Activity className="h-4 w-4" /> Analyze</>}
+                </Button>
+              )}
+            </div>
+          </div>
+          <p className="text-xs text-center text-muted-foreground mt-4">For educational purposes only. Not a medical diagnosis.</p>
         </div>
-      </motion.div>
-    </div>
+
+        {/* Sidebar summary */}
+        <div className="hidden lg:block w-56 shrink-0">
+          <div className="bg-foreground text-background rounded-2xl p-5 sticky top-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Activity className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-sm">Your Analysis</span>
+            </div>
+            <div className="space-y-4 text-sm">
+              <div>
+                <p className="text-xs uppercase tracking-widest opacity-50 mb-1">SYMPTOMS</p>
+                {symptoms.length === 0 ? (
+                  <p className="opacity-40 text-xs italic">None selected</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1">
+                    {symptoms.map((s) => (
+                      <span key={s} className="bg-primary/20 text-primary rounded-full px-2 py-0.5 text-xs">{s}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-widest opacity-50 mb-1">DURATION</p>
+                <p className="opacity-80 text-xs capitalize">{duration.replace(/_/g, " ")}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-widest opacity-50 mb-1">DETAILS</p>
+                <p className="opacity-80 text-xs capitalize">{severity} · {ageRange}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </AppShell>
   );
 }

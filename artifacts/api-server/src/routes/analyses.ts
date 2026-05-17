@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc, sql, gte } from "drizzle-orm";
+import { eq, desc, sql, gte, and } from "drizzle-orm";
 import { db, analysesTable } from "@workspace/db";
 import {
   SaveAnalysisBody,
@@ -9,11 +9,12 @@ import {
 
 const router: IRouter = Router();
 
-router.get("/analyses", async (_req, res): Promise<void> => {
-  const analyses = await db
-    .select()
-    .from(analysesTable)
-    .orderBy(desc(analysesTable.createdAt));
+router.get("/analyses", async (req, res): Promise<void> => {
+  const userId = req.isAuthenticated() ? req.user!.id : null;
+  const query = db.select().from(analysesTable).orderBy(desc(analysesTable.createdAt));
+  const analyses = userId
+    ? await query.where(eq(analysesTable.userId, userId))
+    : await query.where(sql`${analysesTable.userId} is null`);
   res.json(analyses);
 });
 
@@ -24,9 +25,11 @@ router.post("/analyses", async (req, res): Promise<void> => {
     return;
   }
 
+  const userId = req.isAuthenticated() ? req.user!.id : undefined;
+
   const [analysis] = await db
     .insert(analysesTable)
-    .values(parsed.data)
+    .values({ ...parsed.data, userId })
     .returning();
 
   res.status(201).json(analysis);
@@ -59,9 +62,13 @@ router.delete("/analyses/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  const userId = req.isAuthenticated() ? req.user!.id : null;
+  const conditions = [eq(analysesTable.id, params.data.id)];
+  if (userId) conditions.push(eq(analysesTable.userId, userId));
+
   const [deleted] = await db
     .delete(analysesTable)
-    .where(eq(analysesTable.id, params.data.id))
+    .where(and(...conditions))
     .returning();
 
   if (!deleted) {
@@ -74,28 +81,38 @@ router.delete("/analyses/:id", async (req, res): Promise<void> => {
 
 // ── Dashboard endpoints ──────────────────────────────────────────────────────
 
-router.get("/dashboard/stats", async (_req, res): Promise<void> => {
+router.get("/dashboard/stats", async (req, res): Promise<void> => {
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  const userId = req.isAuthenticated() ? req.user!.id : null;
+
+  const userFilter = userId
+    ? eq(analysesTable.userId, userId)
+    : sql`${analysesTable.userId} is null`;
 
   const [totalResult] = await db
     .select({ count: sql<number>`count(*)::int` })
-    .from(analysesTable);
+    .from(analysesTable)
+    .where(userFilter);
 
   const [weekResult] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(analysesTable)
-    .where(gte(analysesTable.createdAt, oneWeekAgo));
+    .where(userId
+      ? and(eq(analysesTable.userId, userId), gte(analysesTable.createdAt, oneWeekAgo))
+      : and(sql`${analysesTable.userId} is null`, gte(analysesTable.createdAt, oneWeekAgo)));
 
   const [emergencyResult] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(analysesTable)
-    .where(eq(analysesTable.urgencyLevel, "emergency_care"));
+    .where(userId
+      ? and(eq(analysesTable.userId, userId), eq(analysesTable.urgencyLevel, "emergency_care"))
+      : and(sql`${analysesTable.userId} is null`, eq(analysesTable.urgencyLevel, "emergency_care")));
 
-  // Most common symptom via unnesting the array
   const symptomRows = await db
     .select({ symptoms: analysesTable.symptoms })
-    .from(analysesTable);
+    .from(analysesTable)
+    .where(userFilter);
 
   const symptomFreq: Record<string, number> = {};
   for (const row of symptomRows) {
@@ -115,16 +132,27 @@ router.get("/dashboard/stats", async (_req, res): Promise<void> => {
   });
 });
 
-router.get("/dashboard/recent", async (_req, res): Promise<void> => {
+router.get("/dashboard/recent", async (req, res): Promise<void> => {
+  const userId = req.isAuthenticated() ? req.user!.id : null;
+  const userFilter = userId
+    ? eq(analysesTable.userId, userId)
+    : sql`${analysesTable.userId} is null`;
+
   const analyses = await db
     .select()
     .from(analysesTable)
+    .where(userFilter)
     .orderBy(desc(analysesTable.createdAt))
     .limit(5);
   res.json(analyses);
 });
 
-router.get("/dashboard/urgency-breakdown", async (_req, res): Promise<void> => {
+router.get("/dashboard/urgency-breakdown", async (req, res): Promise<void> => {
+  const userId = req.isAuthenticated() ? req.user!.id : null;
+  const userFilter = userId
+    ? eq(analysesTable.userId, userId)
+    : sql`${analysesTable.userId} is null`;
+
   const rows = await db
     .select({
       urgencyLevel: analysesTable.urgencyLevel,
@@ -132,6 +160,7 @@ router.get("/dashboard/urgency-breakdown", async (_req, res): Promise<void> => {
       count: sql<number>`count(*)::int`,
     })
     .from(analysesTable)
+    .where(userFilter)
     .groupBy(analysesTable.urgencyLevel, analysesTable.urgencyLabel);
 
   res.json(rows);

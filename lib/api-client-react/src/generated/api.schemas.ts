@@ -13,6 +13,42 @@ export interface ApiError {
   error: string;
 }
 
+export interface AuthUser {
+  id: string;
+  /** @nullable */
+  email: string | null;
+  /** @nullable */
+  firstName: string | null;
+  /** @nullable */
+  lastName: string | null;
+  /** @nullable */
+  profileImageUrl: string | null;
+}
+
+export interface AuthUserEnvelope {
+  user: AuthUser | null;
+}
+
+export interface MobileTokenExchangeRequest {
+  code: string;
+  code_verifier: string;
+  redirect_uri: string;
+  state: string;
+  nonce?: string;
+}
+
+export interface MobileTokenExchangeSuccess {
+  token: string;
+}
+
+export interface LogoutSuccess {
+  success: boolean;
+}
+
+export interface ErrorEnvelope {
+  error: string;
+}
+
 export type SymptomInputDuration = typeof SymptomInputDuration[keyof typeof SymptomInputDuration];
 
 
@@ -67,6 +103,8 @@ export const AnalysisResultUrgencyLevel = {
 export interface PossibleCondition {
   name: string;
   description: string;
+  /** Percentage likelihood 0-100 */
+  likelihood: number;
   commonCauses: string[];
   riskFactors: string[];
   basicApproaches: string[];
@@ -97,11 +135,8 @@ export interface SavedAnalysis {
   severity: string;
   urgencyLevel: string;
   urgencyLabel: string;
-  /** JSON string of PossibleCondition array */
   possibleConditions: string;
-  /** JSON string of advice array */
   lifestyleAdvice: string;
-  /** JSON string of guidance array */
   whenToSeeDoctor: string;
   /** @nullable */
   summary?: string | null;
@@ -136,6 +171,80 @@ export interface UrgencyCount {
   count: number;
 }
 
+export interface UserProfile {
+  userId: string;
+  /** @nullable */
+  genotype?: string | null;
+  /** @nullable */
+  bloodGroup?: string | null;
+  /** @nullable */
+  sex?: string | null;
+  /** @nullable */
+  dateOfBirth?: string | null;
+  allergies: string[];
+}
+
+export interface UserProfileInput {
+  /** @nullable */
+  genotype?: string | null;
+  /** @nullable */
+  bloodGroup?: string | null;
+  /** @nullable */
+  sex?: string | null;
+  /** @nullable */
+  dateOfBirth?: string | null;
+  allergies?: string[];
+}
+
+export interface HealthTip {
+  id: string;
+  title: string;
+  body: string;
+  category: string;
+  icon: string;
+}
+
+export interface WeeklyCheckup {
+  id: number;
+  userId: string;
+  weekStart: string;
+  wellnessScore: number;
+  symptoms: string[];
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  aiSummary?: string | null;
+  createdAt: string;
+}
+
+export interface WeeklyCheckupInput {
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  wellnessScore: number;
+  symptoms: string[];
+  /** @nullable */
+  notes?: string | null;
+}
+
+export type WellnessScoreTrend = typeof WellnessScoreTrend[keyof typeof WellnessScoreTrend];
+
+
+export const WellnessScoreTrend = {
+  up: 'up',
+  down: 'down',
+  stable: 'stable',
+  no_data: 'no_data',
+} as const;
+
+export interface WellnessScore {
+  score: number;
+  trend: WellnessScoreTrend;
+  /** @nullable */
+  lastCheckup?: string | null;
+}
+
 export interface OpenaiConversation {
   id: number;
   title: string;
@@ -168,6 +277,17 @@ export interface OpenaiConversationWithMessages {
 export interface OpenaiError {
   error: string;
 }
+
+export type AuthorizationSessionHeaderParameter = string;
+
+export type BeginBrowserLoginParams = {
+returnTo?: string;
+};
+
+export type HandleBrowserLoginCallbackParams = {
+code?: string;
+state?: string;
+};
 
 export type GetSymptomSuggestionsParams = {
 q?: string;

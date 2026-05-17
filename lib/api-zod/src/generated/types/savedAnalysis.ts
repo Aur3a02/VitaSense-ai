@@ -14,11 +14,8 @@ export interface SavedAnalysis {
   severity: string;
   urgencyLevel: string;
   urgencyLabel: string;
-  /** JSON string of PossibleCondition array */
   possibleConditions: string;
-  /** JSON string of advice array */
   lifestyleAdvice: string;
-  /** JSON string of guidance array */
   whenToSeeDoctor: string;
   /** @nullable */
   summary?: string | null;

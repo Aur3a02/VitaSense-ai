@@ -9,6 +9,8 @@
 export interface PossibleCondition {
   name: string;
   description: string;
+  /** Percentage likelihood 0-100 */
+  likelihood: number;
   commonCauses: string[];
   riskFactors: string[];
   basicApproaches: string[];

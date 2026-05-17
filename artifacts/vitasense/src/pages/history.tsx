@@ -1,4 +1,5 @@
 import { useListAnalyses, getListAnalysesQueryKey, useDeleteAnalysis, getGetDashboardStatsQueryKey, getGetUrgencyBreakdownQueryKey, getGetRecentAnalysesQueryKey } from "@workspace/api-client-react";
+import { AppShell } from "@/components/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -45,14 +46,17 @@ export default function History() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-4xl flex justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <AppShell>
+        <div className="flex justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <AppShell>
+    <div className="p-6 max-w-4xl mx-auto">
       <h1 className="text-3xl font-serif font-bold text-foreground mb-8">Analysis History</h1>
 
       {!analyses || analyses.length === 0 ? (
@@ -148,5 +152,6 @@ export default function History() {
         </div>
       )}
     </div>
+    </AppShell>
   );
 }

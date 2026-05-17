@@ -1,6 +1,5 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
   description: VitaSense AI – symptom analysis and health guidance API
@@ -9,15 +8,14 @@ servers:
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: Auth
   - name: symptoms
-    description: Symptom analysis and AI health guidance
   - name: analyses
-    description: Saved analysis history
   - name: dashboard
-    description: Dashboard aggregates and stats
+  - name: profile
+  - name: tips
+  - name: checkup
   - name: openai
-    description: OpenAI AI chat, image, and audio operations
 
 paths:
   /healthz:
@@ -25,7 +23,6 @@ paths:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -34,13 +31,71 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
-  # ── Symptom Analysis ────────────────────────────────────────────────────────
+  /auth/user:
+    get:
+      tags: [Auth]
+      operationId: getCurrentAuthUser
+      summary: Get the currently authenticated user
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+        - $ref: '#/components/parameters/SessionCookie'
+      responses:
+        '200':
+          description: Auth status resolved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserEnvelope'
+  /login:
+    get:
+      tags: [Auth]
+      operationId: beginBrowserLogin
+      summary: Start the browser OIDC login flow
+      parameters:
+        - name: returnTo
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to OIDC.
+  /callback:
+    get:
+      tags: [Auth]
+      operationId: handleBrowserLoginCallback
+      summary: Complete the browser OIDC login flow
+      parameters:
+        - name: code
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect on success or failure.
+  /logout:
+    get:
+      tags: [Auth]
+      operationId: logoutBrowserSession
+      summary: Clear the session
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+        - $ref: '#/components/parameters/SessionCookie'
+      responses:
+        '302':
+          description: Redirect to OIDC logout.
+
   /symptoms/analyze:
     post:
       operationId: analyzeSymptoms
       tags: [symptoms]
       summary: Run AI-powered symptom analysis
-      description: Submit symptoms, duration, age range, and severity for AI health guidance
       requestBody:
         required: true
         content:
@@ -82,12 +137,11 @@ paths:
                 items:
                   $ref: "#/components/schemas/SymptomSuggestion"
 
-  # ── Saved Analyses ───────────────────────────────────────────────────────────
   /analyses:
     get:
       operationId: listAnalyses
       tags: [analyses]
-      summary: List all saved analyses
+      summary: List all saved analyses for current user
       responses:
         "200":
           description: List of saved analyses
@@ -159,7 +213,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
-  # ── Dashboard ────────────────────────────────────────────────────────────────
   /dashboard/stats:
     get:
       operationId: getDashboardStats
@@ -203,7 +256,114 @@ paths:
                 items:
                   $ref: "#/components/schemas/UrgencyCount"
 
-  # ── OpenAI Chat (health chatbot) ─────────────────────────────────────────────
+  /profile:
+    get:
+      operationId: getUserProfile
+      tags: [profile]
+      summary: Get the authenticated user's health profile
+      responses:
+        "200":
+          description: User health profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    put:
+      operationId: upsertUserProfile
+      tags: [profile]
+      summary: Create or update user health profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserProfileInput"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /tips/daily:
+    get:
+      operationId: getDailyTips
+      tags: [tips]
+      summary: Get daily health tips
+      responses:
+        "200":
+          description: List of daily health tips
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HealthTip"
+
+  /checkup:
+    get:
+      operationId: listCheckups
+      tags: [checkup]
+      summary: List weekly checkups for current user
+      responses:
+        "200":
+          description: List of checkups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WeeklyCheckup"
+    post:
+      operationId: submitCheckup
+      tags: [checkup]
+      summary: Submit a weekly checkup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WeeklyCheckupInput"
+      responses:
+        "201":
+          description: Created checkup
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyCheckup"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /checkup/wellness:
+    get:
+      operationId: getWellnessScore
+      tags: [checkup]
+      summary: Get current wellness score
+      responses:
+        "200":
+          description: Wellness score
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WellnessScore"
+
   /openai/conversations:
     get:
       operationId: listOpenaiConversations
@@ -303,7 +463,7 @@ paths:
     post:
       operationId: sendOpenaiMessage
       tags: [openai]
-      summary: Send a text message and receive a streaming text response
+      summary: Send a message and receive a streaming response
       parameters:
         - name: id
           in: path
@@ -318,29 +478,95 @@ paths:
               $ref: "#/components/schemas/OpenaiMessageInput"
       responses:
         "200":
-          description: SSE stream of assistant text chunks
+          description: SSE stream
           content:
             text/event-stream: {}
 
 components:
+  parameters:
+    AuthorizationSessionHeader:
+      name: Authorization
+      in: header
+      required: false
+      schema:
+        type: string
+    SessionCookie:
+      name: sid
+      in: cookie
+      required: false
+      schema:
+        type: string
+
   schemas:
     HealthStatus:
       type: object
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
     ApiError:
       type: object
       properties:
         error:
           type: string
-      required:
-        - error
+      required: [error]
 
-    # ── Symptom Analysis ───────────────────────────────────────────────────────
+    AuthUser:
+      type: object
+      required: [id, email, firstName, lastName, profileImageUrl]
+      properties:
+        id:
+          type: string
+        email:
+          type: [string, 'null']
+        firstName:
+          type: [string, 'null']
+        lastName:
+          type: [string, 'null']
+        profileImageUrl:
+          type: [string, 'null']
+    AuthUserEnvelope:
+      type: object
+      required: [user]
+      properties:
+        user:
+          oneOf:
+            - $ref: '#/components/schemas/AuthUser'
+            - type: 'null'
+    MobileTokenExchangeRequest:
+      type: object
+      required: [code, code_verifier, redirect_uri, state]
+      properties:
+        code:
+          type: string
+        code_verifier:
+          type: string
+        redirect_uri:
+          type: string
+        state:
+          type: string
+        nonce:
+          type: string
+    MobileTokenExchangeSuccess:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+    LogoutSuccess:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
     SymptomInput:
       type: object
       required: [symptoms, duration, ageRange, severity]
@@ -390,12 +616,15 @@ components:
 
     PossibleCondition:
       type: object
-      required: [name, description, commonCauses, riskFactors, basicApproaches]
+      required: [name, description, likelihood, commonCauses, riskFactors, basicApproaches]
       properties:
         name:
           type: string
         description:
           type: string
+        likelihood:
+          type: integer
+          description: Percentage likelihood 0-100
         commonCauses:
           type: array
           items:
@@ -420,7 +649,6 @@ components:
         category:
           type: string
 
-    # ── Saved Analyses ─────────────────────────────────────────────────────────
     SavedAnalysis:
       type: object
       required: [id, symptoms, duration, ageRange, severity, urgencyLevel, urgencyLabel, possibleConditions, lifestyleAdvice, whenToSeeDoctor, createdAt]
@@ -443,13 +671,10 @@ components:
           type: string
         possibleConditions:
           type: string
-          description: JSON string of PossibleCondition array
         lifestyleAdvice:
           type: string
-          description: JSON string of advice array
         whenToSeeDoctor:
           type: string
-          description: JSON string of guidance array
         summary:
           type: ["string", "null"]
         createdAt:
@@ -483,7 +708,6 @@ components:
         summary:
           type: ["string", "null"]
 
-    # ── Dashboard ──────────────────────────────────────────────────────────────
     DashboardStats:
       type: object
       required: [totalAnalyses, thisWeek, emergencyCount, mostCommonSymptom]
@@ -508,9 +732,110 @@ components:
         count:
           type: integer
 
-    # ── OpenAI ─────────────────────────────────────────────────────────────────
+    UserProfile:
+      type: object
+      required: [userId, allergies]
+      properties:
+        userId:
+          type: string
+        genotype:
+          type: ["string", "null"]
+        bloodGroup:
+          type: ["string", "null"]
+        sex:
+          type: ["string", "null"]
+        dateOfBirth:
+          type: ["string", "null"]
+        allergies:
+          type: array
+          items:
+            type: string
+
+    UserProfileInput:
+      type: object
+      properties:
+        genotype:
+          type: ["string", "null"]
+        bloodGroup:
+          type: ["string", "null"]
+        sex:
+          type: ["string", "null"]
+        dateOfBirth:
+          type: ["string", "null"]
+        allergies:
+          type: array
+          items:
+            type: string
+
+    HealthTip:
+      type: object
+      required: [id, title, body, category, icon]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+        category:
+          type: string
+        icon:
+          type: string
+
+    WeeklyCheckup:
+      type: object
+      required: [id, userId, weekStart, wellnessScore, symptoms, createdAt]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+        weekStart:
+          type: string
+        wellnessScore:
+          type: integer
+        symptoms:
+          type: array
+          items:
+            type: string
+        notes:
+          type: ["string", "null"]
+        aiSummary:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    WeeklyCheckupInput:
+      type: object
+      required: [wellnessScore, symptoms]
+      properties:
+        wellnessScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+        symptoms:
+          type: array
+          items:
+            type: string
+        notes:
+          type: ["string", "null"]
+
+    WellnessScore:
+      type: object
+      required: [score, trend]
+      properties:
+        score:
+          type: integer
+        trend:
+          type: string
+          enum: [up, down, stable, no_data]
+        lastCheckup:
+          type: ["string", "null"]
+
     OpenaiConversation:
       type: object
+      required: [id, title, createdAt]
       properties:
         id:
           type: integer
@@ -519,13 +844,10 @@ components:
         createdAt:
           type: string
           format: date-time
-      required:
-        - id
-        - title
-        - createdAt
 
     OpenaiMessage:
       type: object
+      required: [id, conversationId, role, content, createdAt]
       properties:
         id:
           type: integer
@@ -538,31 +860,24 @@ components:
         createdAt:
           type: string
           format: date-time
-      required:
-        - id
-        - conversationId
-        - role
-        - content
-        - createdAt
 
     OpenaiConversationInput:
       type: object
+      required: [title]
       properties:
         title:
           type: string
-      required:
-        - title
 
     OpenaiMessageInput:
       type: object
+      required: [content]
       properties:
         content:
           type: string
-      required:
-        - content
 
     OpenaiConversationWithMessages:
       type: object
+      required: [id, title, createdAt, messages]
       properties:
         id:
           type: integer
@@ -575,16 +890,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/OpenaiMessage"
-      required:
-        - id
-        - title
-        - createdAt
-        - messages
 
     OpenaiError:
       type: object
+      required: [error]
       properties:
         error:
           type: string
-      required:
-        - error

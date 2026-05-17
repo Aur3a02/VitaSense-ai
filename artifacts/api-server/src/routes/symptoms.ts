@@ -42,6 +42,10 @@ const SYMPTOM_LIST = [
   { id: "heart_palpitations", label: "Heart Palpitations", category: "Chest" },
   { id: "numbness", label: "Numbness or Tingling", category: "Neurological" },
   { id: "weakness", label: "Weakness", category: "General" },
+  { id: "abdominal_pain", label: "Abdominal Pain", category: "Digestive" },
+  { id: "bloating", label: "Bloating", category: "Digestive" },
+  { id: "weight_loss", label: "Unexplained Weight Loss", category: "General" },
+  { id: "weight_gain", label: "Unexplained Weight Gain", category: "General" },
 ];
 
 router.get("/symptoms/suggestions", async (req, res): Promise<void> => {
@@ -73,7 +77,7 @@ router.post("/symptoms/analyze", async (req, res): Promise<void> => {
     chronic: "chronically / long-term",
   };
 
-  const systemPrompt = `You are VitaSense AI, an educational health guidance assistant. 
+  const systemPrompt = `You are VitaSense AI, an educational health guidance assistant.
 You provide general wellness information for educational purposes only.
 IMPORTANT: You do NOT diagnose. Use language like "may be associated with", "possible related conditions", "educational purposes only".
 Never claim definitive diagnosis. Always recommend consulting a healthcare professional.
@@ -95,6 +99,7 @@ Provide educational health guidance in this exact JSON format:
     {
       "name": "condition name",
       "description": "brief educational description",
+      "likelihood": 75,
       "commonCauses": ["cause1", "cause2"],
       "riskFactors": ["factor1", "factor2"],
       "basicApproaches": ["general approach1", "approach2"]
@@ -105,7 +110,7 @@ Provide educational health guidance in this exact JSON format:
   "disclaimer": "This information is for educational purposes only and is not a substitute for professional medical advice, diagnosis, or treatment."
 }
 
-Include 2-4 possible related conditions. Keep language educational and non-diagnostic.`;
+Include 3-4 possible related conditions. Each must have a "likelihood" integer (0-100) representing how likely it is given the symptoms — rank them from highest to lowest likelihood. Keep language educational and non-diagnostic.`;
 
   try {
     const completion = await openai.chat.completions.create({
@@ -120,6 +125,14 @@ Include 2-4 possible related conditions. Keep language educational and non-diagn
 
     const content = completion.choices[0]?.message?.content ?? "{}";
     const result = JSON.parse(content);
+
+    // Ensure conditions are sorted by likelihood descending
+    if (Array.isArray(result.possibleConditions)) {
+      result.possibleConditions.sort(
+        (a: { likelihood: number }, b: { likelihood: number }) =>
+          (b.likelihood ?? 0) - (a.likelihood ?? 0)
+      );
+    }
 
     res.json(result);
   } catch (err) {
