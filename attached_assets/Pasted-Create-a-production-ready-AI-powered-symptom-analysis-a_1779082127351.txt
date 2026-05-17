@@ -1,0 +1,467 @@
+Create a production-ready AI-powered symptom analysis and health guidance web application called “VitaSense AI”.
+
+IMPORTANT:
+This is NOT a medical diagnosis app.
+The platform must clearly present itself as:
+
+An educational health guidance assistant
+A symptom interpretation platform
+A wellness and healthcare navigation tool
+
+The application must include proper medical disclaimers and avoid claiming definitive diagnosis.
+
+The app should feel:
+
+Professional
+Modern
+Trustworthy
+Calm
+User-friendly
+Responsive
+Fast
+Intelligent
+
+DESIGN REQUIREMENTS:
+The visual design should combine:
+
+Clean white backgrounds
+Elegant wine/burgundy accents
+Soft gradients
+Minimal modern medical UI
+Smooth rounded cards
+Calm professional appearance
+
+The app should feel like a premium healthcare startup product.
+
+COLOR PALETTE:
+Use:
+
+White backgrounds
+Wine/Burgundy primary accents
+Soft pink gradients
+Light gray secondary backgrounds
+Dark text for readability
+
+DARK MODE:
+Implement fully functional dark mode with:
+
+Deep burgundy accents
+Dark gray backgrounds
+Smooth theme transitions
+Persistent theme saving
+
+TYPOGRAPHY:
+Use:
+
+Inter
+Poppins
+Nunito
+
+STYLE:
+
+Minimal modern interface
+Spacious layouts
+Soft shadows
+Rounded corners
+Smooth transitions
+Professional healthcare aesthetic
+
+TECH STACK:
+Use:
+
+React + Vite
+Tailwind CSS
+Node.js + Express backend
+Framer Motion
+TypeScript if possible
+Replit deployment optimization
+
+For APIs:
+
+OpenAI API or Gemini API
+Google Maps API
+Google Places API
+Geolocation API
+Search integration for educational medical content
+
+PRODUCTION REQUIREMENTS:
+The app must be:
+
+Production-ready
+SEO optimized
+Mobile-first responsive
+High performance
+Accessible
+Offline-capable
+Progressive Web App (PWA)
+
+SEO REQUIREMENTS:
+Implement:
+
+Dynamic meta tags
+Structured schema markup
+Open Graph tags
+Semantic HTML
+Sitemap generation
+Robots.txt
+Fast loading optimization
+SEO-friendly routing
+
+PWA / OFFLINE SUPPORT:
+Implement:
+
+Service workers
+Offline caching
+Installable app support
+Cached health guidance pages
+Offline fallback pages
+Fast repeat loading
+
+RESPONSIVENESS:
+Ensure:
+
+Perfect mobile responsiveness
+Tablet optimization
+Desktop responsiveness
+Smooth adaptive layouts
+
+The UI should work beautifully on:
+
+Phones
+Tablets
+Laptops
+Large monitors
+========================================
+CORE APPLICATION FEATURES
+LANDING PAGE
+
+Create a beautiful modern healthcare landing page with:
+
+Hero Section:
+
+Professional medical illustration
+Headline such as:
+“Understand Your Symptoms Smarter”
+Supporting description
+CTA buttons:
+Analyze Symptoms
+Learn More
+
+Include:
+
+Animated background gradients
+Floating healthcare icons
+Smooth entrance animations
+
+Sections:
+
+Features overview
+How it works
+Testimonials
+FAQ
+Disclaimer section
+Footer
+========================================
+2. SYMPTOM ANALYSIS SYSTEM
+
+Create a powerful symptom input system.
+
+The app should request:
+
+Symptoms
+Duration of symptoms
+Age range
+Severity level
+
+INPUT OPTIONS:
+Symptoms:
+
+Multi-select input
+Searchable symptom suggestions
+Tag-style UI
+
+Duration:
+
+Few hours
+1 day
+Several days
+1 week+
+Chronic
+
+Age ranges:
+
+Child
+Teen
+Adult
+Elderly
+
+Severity:
+
+Mild
+Moderate
+Severe
+Emergency
+
+Add:
+
+Smooth form validation
+Progress indicators
+Friendly UI
+========================================
+3. AI-POWERED HEALTH GUIDANCE ENGINE
+
+The app should intelligently combine:
+
+AI reasoning
+Search engine data
+Reliable health information
+Educational medical sources
+
+The app should generate:
+
+A. POSSIBLE RELATED CONDITIONS
+Examples:
+
+Flu
+Migraine
+Dehydration
+Allergies
+
+IMPORTANT:
+Use language such as:
+
+“Possible related conditions”
+“May be associated with”
+“Educational purposes only”
+
+NEVER:
+
+Claim definitive diagnosis
+Guarantee medical accuracy
+
+B. URGENCY LEVELS
+Generate:
+
+Mild concern
+Moderate concern
+Seek medical attention
+Emergency care recommended
+
+Use clear visual indicators.
+
+C. EDUCATIONAL EXPLANATIONS
+For each possible condition:
+
+Explain symptoms
+Explain common causes
+Explain risk factors
+Explain basic treatment approaches
+
+D. LIFESTYLE ADVICE
+Provide:
+
+Hydration advice
+Rest suggestions
+Wellness tips
+General health recommendations
+
+E. WHEN TO SEE A DOCTOR
+Clearly explain:
+
+Warning signs
+Emergency symptoms
+Escalation indicators
+========================================
+4. LOCATION & HEALTHCARE FINDER
+
+Integrate:
+
+Google Maps API
+Google Places API
+Browser geolocation
+
+The app should:
+
+Ask user permission for location access
+Detect current location
+Suggest nearby:
+Hospitals
+Clinics
+Pharmacies
+Emergency centers
+
+Display:
+
+Interactive map
+Distance information
+Contact information
+Ratings if available
+
+Include:
+
+Search nearby button
+Emergency quick access
+========================================
+5. HEALTH DISCLAIMER SYSTEM
+
+VERY IMPORTANT.
+
+Display clear disclaimers:
+
+Homepage
+Before analysis results
+Footer
+
+Example:
+“This application is for educational and informational purposes only and is not a substitute for professional medical advice, diagnosis, or treatment.”
+
+Add:
+
+Emergency warning banner
+“Call emergency services” recommendation for critical symptoms
+========================================
+6. USER DASHBOARD
+
+Create a modern user dashboard where users can:
+
+View previous symptom analyses
+Save reports
+Track wellness history
+Access nearby healthcare locations
+Toggle dark/light mode
+
+Dashboard sections:
+
+Recent analyses
+Saved health reports
+Nearby healthcare
+Health tips
+Settings
+========================================
+7. AUTHENTICATION
+
+Implement:
+
+Replit Auth
+Google login
+Email sign-in
+Persistent sessions
+Protected routes
+========================================
+8. DARK MODE & THEMING
+
+Implement:
+
+Fully working dark mode
+Smooth transitions
+Persistent preferences
+
+Dark mode colors:
+
+Dark charcoal
+Burgundy accents
+Elegant wine gradients
+========================================
+9. PERFORMANCE OPTIMIZATION
+
+Optimize:
+
+Lazy loading
+Code splitting
+Image optimization
+API caching
+Fast rendering
+Minimal bundle size
+
+Ensure excellent Lighthouse scores.
+
+========================================
+10. ACCESSIBILITY
+
+Implement:
+
+ARIA labels
+Keyboard navigation
+High contrast support
+Screen reader optimization
+Accessible forms
+========================================
+11. SECURITY
+
+Implement:
+
+API rate limiting
+Input sanitization
+Secure environment variables
+Protected API routes
+Validation middleware
+========================================
+12. ANIMATIONS
+
+Use Framer Motion for:
+
+Smooth page transitions
+Card hover effects
+Form transitions
+Loading animations
+Map appearance animations
+
+Keep animations:
+
+Smooth
+Subtle
+Professional
+========================================
+13. FILE STRUCTURE & CODE QUALITY
+
+IMPORTANT:
+I am still learning development.
+
+Please:
+
+Use clean architecture
+Add comments explaining important logic
+Organize components properly
+Use reusable components
+Keep code beginner-friendly
+========================================
+14. BONUS FEATURES
+
+If possible, also add:
+
+Voice symptom input
+Symptom history charts
+AI health chatbot
+Medication educational lookup
+Wellness reminders
+Water intake tracker
+Multi-language support
+Emergency quick-call button
+========================================
+15. FINAL GOAL
+
+Create a polished, production-ready AI-powered health guidance platform that:
+
+Helps users understand symptoms
+Provides educational health insights
+Suggests urgency levels
+Helps users locate nearby healthcare facilities
+Works offline
+Loads fast
+Looks premium and trustworthy
+Maintains excellent UX/UI
+Is SEO optimized
+Is fully responsive
+Feels like a real healthcare startup application
+
+MOST IMPORTANT REQUIREMENTS:
+
+Production-ready architecture
+Offline support
+SEO optimization
+Fully responsive
+User-friendly healthcare UI
+White and wine-colored elegant design
+Proper medical disclaimers
+Fast performance
+Intelligent AI-generated educational analysis without claiming definitive diagnosis.

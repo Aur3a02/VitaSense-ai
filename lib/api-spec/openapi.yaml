@@ -3,13 +3,22 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: VitaSense AI – symptom analysis and health guidance API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: symptoms
+    description: Symptom analysis and AI health guidance
+  - name: analyses
+    description: Saved analysis history
+  - name: dashboard
+    description: Dashboard aggregates and stats
+  - name: openai
+    description: OpenAI AI chat, image, and audio operations
+
 paths:
   /healthz:
     get:
@@ -24,6 +33,295 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── Symptom Analysis ────────────────────────────────────────────────────────
+  /symptoms/analyze:
+    post:
+      operationId: analyzeSymptoms
+      tags: [symptoms]
+      summary: Run AI-powered symptom analysis
+      description: Submit symptoms, duration, age range, and severity for AI health guidance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SymptomInput"
+      responses:
+        "200":
+          description: Analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisResult"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /symptoms/suggestions:
+    get:
+      operationId: getSymptomSuggestions
+      tags: [symptoms]
+      summary: Get symptom autocomplete suggestions
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of symptom suggestions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SymptomSuggestion"
+
+  # ── Saved Analyses ───────────────────────────────────────────────────────────
+  /analyses:
+    get:
+      operationId: listAnalyses
+      tags: [analyses]
+      summary: List all saved analyses
+      responses:
+        "200":
+          description: List of saved analyses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SavedAnalysis"
+    post:
+      operationId: saveAnalysis
+      tags: [analyses]
+      summary: Save an analysis result
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SavedAnalysisInput"
+      responses:
+        "201":
+          description: Saved analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedAnalysis"
+
+  /analyses/{id}:
+    get:
+      operationId: getAnalysis
+      tags: [analyses]
+      summary: Get a saved analysis by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Saved analysis detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedAnalysis"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: deleteAnalysis
+      tags: [analyses]
+      summary: Delete a saved analysis
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  # ── Dashboard ────────────────────────────────────────────────────────────────
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get dashboard summary stats
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /dashboard/recent:
+    get:
+      operationId: getRecentAnalyses
+      tags: [dashboard]
+      summary: Get 5 most recent analyses
+      responses:
+        "200":
+          description: Recent analyses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SavedAnalysis"
+
+  /dashboard/urgency-breakdown:
+    get:
+      operationId: getUrgencyBreakdown
+      tags: [dashboard]
+      summary: Get urgency level distribution
+      responses:
+        "200":
+          description: Urgency breakdown counts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UrgencyCount"
+
+  # ── OpenAI Chat (health chatbot) ─────────────────────────────────────────────
+  /openai/conversations:
+    get:
+      operationId: listOpenaiConversations
+      tags: [openai]
+      summary: List all conversations
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenaiConversation"
+    post:
+      operationId: createOpenaiConversation
+      tags: [openai]
+      summary: Create a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenaiConversationInput"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversation"
+
+  /openai/conversations/{id}:
+    get:
+      operationId: getOpenaiConversation
+      tags: [openai]
+      summary: Get conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversationWithMessages"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+    delete:
+      operationId: deleteOpenaiConversation
+      tags: [openai]
+      summary: Delete a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+
+  /openai/conversations/{id}/messages:
+    get:
+      operationId: listOpenaiMessages
+      tags: [openai]
+      summary: List messages in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenaiMessage"
+    post:
+      operationId: sendOpenaiMessage
+      tags: [openai]
+      summary: Send a text message and receive a streaming text response
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenaiMessageInput"
+      responses:
+        "200":
+          description: SSE stream of assistant text chunks
+          content:
+            text/event-stream: {}
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +332,259 @@ components:
       required:
         - status
 
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    # ── Symptom Analysis ───────────────────────────────────────────────────────
+    SymptomInput:
+      type: object
+      required: [symptoms, duration, ageRange, severity]
+      properties:
+        symptoms:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        duration:
+          type: string
+          enum: [few_hours, one_day, several_days, one_week_plus, chronic]
+        ageRange:
+          type: string
+          enum: [child, teen, adult, elderly]
+        severity:
+          type: string
+          enum: [mild, moderate, severe, emergency]
+        additionalNotes:
+          type: ["string", "null"]
+
+    AnalysisResult:
+      type: object
+      required: [urgencyLevel, urgencyLabel, possibleConditions, lifestyleAdvice, whenToSeeDoctor, disclaimer]
+      properties:
+        urgencyLevel:
+          type: string
+          enum: [mild_concern, moderate_concern, seek_medical_attention, emergency_care]
+        urgencyLabel:
+          type: string
+        possibleConditions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PossibleCondition"
+        lifestyleAdvice:
+          type: array
+          items:
+            type: string
+        whenToSeeDoctor:
+          type: array
+          items:
+            type: string
+        disclaimer:
+          type: string
+        summary:
+          type: ["string", "null"]
+
+    PossibleCondition:
+      type: object
+      required: [name, description, commonCauses, riskFactors, basicApproaches]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        commonCauses:
+          type: array
+          items:
+            type: string
+        riskFactors:
+          type: array
+          items:
+            type: string
+        basicApproaches:
+          type: array
+          items:
+            type: string
+
+    SymptomSuggestion:
+      type: object
+      required: [id, label, category]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        category:
+          type: string
+
+    # ── Saved Analyses ─────────────────────────────────────────────────────────
+    SavedAnalysis:
+      type: object
+      required: [id, symptoms, duration, ageRange, severity, urgencyLevel, urgencyLabel, possibleConditions, lifestyleAdvice, whenToSeeDoctor, createdAt]
+      properties:
+        id:
+          type: integer
+        symptoms:
+          type: array
+          items:
+            type: string
+        duration:
+          type: string
+        ageRange:
+          type: string
+        severity:
+          type: string
+        urgencyLevel:
+          type: string
+        urgencyLabel:
+          type: string
+        possibleConditions:
+          type: string
+          description: JSON string of PossibleCondition array
+        lifestyleAdvice:
+          type: string
+          description: JSON string of advice array
+        whenToSeeDoctor:
+          type: string
+          description: JSON string of guidance array
+        summary:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    SavedAnalysisInput:
+      type: object
+      required: [symptoms, duration, ageRange, severity, urgencyLevel, urgencyLabel, possibleConditions, lifestyleAdvice, whenToSeeDoctor]
+      properties:
+        symptoms:
+          type: array
+          items:
+            type: string
+        duration:
+          type: string
+        ageRange:
+          type: string
+        severity:
+          type: string
+        urgencyLevel:
+          type: string
+        urgencyLabel:
+          type: string
+        possibleConditions:
+          type: string
+        lifestyleAdvice:
+          type: string
+        whenToSeeDoctor:
+          type: string
+        summary:
+          type: ["string", "null"]
+
+    # ── Dashboard ──────────────────────────────────────────────────────────────
+    DashboardStats:
+      type: object
+      required: [totalAnalyses, thisWeek, emergencyCount, mostCommonSymptom]
+      properties:
+        totalAnalyses:
+          type: integer
+        thisWeek:
+          type: integer
+        emergencyCount:
+          type: integer
+        mostCommonSymptom:
+          type: ["string", "null"]
+
+    UrgencyCount:
+      type: object
+      required: [urgencyLevel, urgencyLabel, count]
+      properties:
+        urgencyLevel:
+          type: string
+        urgencyLabel:
+          type: string
+        count:
+          type: integer
+
+    # ── OpenAI ─────────────────────────────────────────────────────────────────
+    OpenaiConversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - createdAt
+
+    OpenaiMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - conversationId
+        - role
+        - content
+        - createdAt
+
+    OpenaiConversationInput:
+      type: object
+      properties:
+        title:
+          type: string
+      required:
+        - title
+
+    OpenaiMessageInput:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+
+    OpenaiConversationWithMessages:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpenaiMessage"
+      required:
+        - id
+        - title
+        - createdAt
+        - messages
+
+    OpenaiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
