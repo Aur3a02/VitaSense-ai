@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle, Info, ArrowLeft, Bookmark, HeartPulse, Stethoscope, AlertCircle } from "lucide-react";
+import { AlertTriangle, Info, ArrowLeft, Bookmark, HeartPulse, Stethoscope, AlertCircle, Activity } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Results() {
