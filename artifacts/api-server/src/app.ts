@@ -1,4 +1,5 @@
-import express, { Express, Request, Response } from "express";
+import * as express from "express";
+import { Express, Request, Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
