@@ -1,8 +1,9 @@
-import * as express from "express";
-import { Express, Request, Response } from "express";
+import express, { Express, Request, Response } from "express";
+import pinoHttp from "pino-http";
+
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import pinoHttp from "pino-http";
+
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { authMiddleware } from "./middlewares/authMiddleware";
