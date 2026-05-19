@@ -1,8 +1,7 @@
 import { Router, type IRouter } from "express";
+import { logger } from "../lib/logger";
 import { openai } from "@workspace/integrations-openai-ai-server";
-import {
-  AnalyzeSymptomsBody,
-} from "@workspace/api-zod";
+import { AnalyzeSymptomsBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
@@ -17,7 +16,11 @@ const SYMPTOM_LIST = [
   { id: "diarrhea", label: "Diarrhea", category: "Digestive" },
   { id: "stomach_pain", label: "Stomach Pain", category: "Digestive" },
   { id: "chest_pain", label: "Chest Pain", category: "Chest" },
-  { id: "shortness_of_breath", label: "Shortness of Breath", category: "Respiratory" },
+  {
+    id: "shortness_of_breath",
+    label: "Shortness of Breath",
+    category: "Respiratory",
+  },
   { id: "runny_nose", label: "Runny Nose", category: "Respiratory" },
   { id: "congestion", label: "Congestion", category: "Respiratory" },
   { id: "sneezing", label: "Sneezing", category: "Respiratory" },
@@ -31,7 +34,11 @@ const SYMPTOM_LIST = [
   { id: "chills", label: "Chills", category: "General" },
   { id: "night_sweats", label: "Night Sweats", category: "General" },
   { id: "loss_of_appetite", label: "Loss of Appetite", category: "General" },
-  { id: "frequent_urination", label: "Frequent Urination", category: "Urinary" },
+  {
+    id: "frequent_urination",
+    label: "Frequent Urination",
+    category: "Urinary",
+  },
   { id: "painful_urination", label: "Painful Urination", category: "Urinary" },
   { id: "anxiety", label: "Anxiety", category: "Mental Health" },
   { id: "depression", label: "Depression", category: "Mental Health" },
@@ -54,7 +61,7 @@ router.get("/symptoms/suggestions", async (req, res): Promise<void> => {
     ? SYMPTOM_LIST.filter(
         (s) =>
           s.label.toLowerCase().includes(q) ||
-          s.category.toLowerCase().includes(q)
+          s.category.toLowerCase().includes(q),
       )
     : SYMPTOM_LIST;
   res.json(filtered.slice(0, 20));
@@ -67,7 +74,8 @@ router.post("/symptoms/analyze", async (req, res): Promise<void> => {
     return;
   }
 
-  const { symptoms, duration, ageRange, severity, additionalNotes } = parsed.data;
+  const { symptoms, duration, ageRange, severity, additionalNotes } =
+    parsed.data;
 
   const durationLabel: Record<string, string> = {
     few_hours: "a few hours",
@@ -130,13 +138,13 @@ Include 3-4 possible related conditions. Each must have a "likelihood" integer (
     if (Array.isArray(result.possibleConditions)) {
       result.possibleConditions.sort(
         (a: { likelihood: number }, b: { likelihood: number }) =>
-          (b.likelihood ?? 0) - (a.likelihood ?? 0)
+          (b.likelihood ?? 0) - (a.likelihood ?? 0),
       );
     }
 
     res.json(result);
   } catch (err) {
-    req.log.error({ err }, "AI analysis failed");
+    logger.error({ err }, "AI analysis failed");
     res.status(500).json({ error: "Analysis failed. Please try again." });
   }
 });
