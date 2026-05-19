@@ -1,4 +1,5 @@
 import * as oidc from "openid-client";
+import { logger } from "../lib/logger";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { GetCurrentAuthUserResponse } from "@workspace/api-zod";
 import { db, usersTable } from "@workspace/db";
@@ -22,12 +23,25 @@ interface MobileTokenExchangeBody {
   nonce?: string | null;
 }
 
-function parseMobileTokenExchange(body: unknown): MobileTokenExchangeBody | null {
+function parseMobileTokenExchange(
+  body: unknown,
+): MobileTokenExchangeBody | null {
   if (typeof body !== "object" || body === null) return null;
   const b = body as Record<string, unknown>;
-  if (typeof b.code !== "string" || typeof b.code_verifier !== "string" ||
-      typeof b.redirect_uri !== "string" || typeof b.state !== "string") return null;
-  return { code: b.code, code_verifier: b.code_verifier, redirect_uri: b.redirect_uri, state: b.state, nonce: typeof b.nonce === "string" ? b.nonce : null };
+  if (
+    typeof b.code !== "string" ||
+    typeof b.code_verifier !== "string" ||
+    typeof b.redirect_uri !== "string" ||
+    typeof b.state !== "string"
+  )
+    return null;
+  return {
+    code: b.code,
+    code_verifier: b.code_verifier,
+    redirect_uri: b.redirect_uri,
+    state: b.state,
+    nonce: typeof b.nonce === "string" ? b.nonce : null,
+  };
 }
 
 const OIDC_COOKIE_TTL = 10 * 60 * 1000;
@@ -62,7 +76,11 @@ function setOidcCookie(res: Response, name: string, value: string) {
 }
 
 function getSafeReturnTo(value: unknown): string {
-  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) {
+  if (
+    typeof value !== "string" ||
+    !value.startsWith("/") ||
+    value.startsWith("//")
+  ) {
     return "/";
   }
   return value;
@@ -241,7 +259,9 @@ router.post(
         return;
       }
 
-      const dbUser = await upsertUser(claims as unknown as Record<string, unknown>);
+      const dbUser = await upsertUser(
+        claims as unknown as Record<string, unknown>,
+      );
 
       const now = Math.floor(Date.now() / 1000);
       const sessionData: SessionData = {
@@ -260,7 +280,7 @@ router.post(
       const sid = await createSession(sessionData);
       res.json({ token: sid });
     } catch (err) {
-      req.log.error({ err }, "Mobile token exchange error");
+      logger.error({ err }, "Mobile token exchange error");
       res.status(500).json({ error: "Token exchange failed" });
     }
   },
