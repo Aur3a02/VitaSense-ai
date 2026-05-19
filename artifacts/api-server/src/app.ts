@@ -1,5 +1,5 @@
 import express, { Express, Request, Response } from "express";
-import pinoHttp from "pino-http";
+const pinoHttp = require("pino-http");
 
 import cors from "cors";
 import cookieParser from "cookie-parser";
