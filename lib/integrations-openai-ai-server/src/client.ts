@@ -1,5 +1,7 @@
-import * as OpenAI from "openai";
+import OpenAI from "openai";
 
-export const openai = new OpenAI.default({
+const openai = new (OpenAI as any)({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+export { openai };
