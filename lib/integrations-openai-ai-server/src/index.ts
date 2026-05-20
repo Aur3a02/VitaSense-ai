@@ -1,3 +1,3 @@
-import openai from "./client";
+import { openai } from "./client";
 
 export { openai };
